@@ -1,0 +1,4 @@
+bundeslaender_path:
+  berlin: ASOG_BE_2006.zip
+data_catalog_path: data_catalog
+raw_data_path: raw_data
