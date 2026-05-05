@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
-    
+
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
-    
+
     pipeline = DataPipeline(config)
     pipeline.run()
