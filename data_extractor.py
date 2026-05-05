@@ -1,7 +1,6 @@
 import re
 import xml.etree.ElementTree as ET
 
-import pandas as pd
 from bs4 import BeautifulSoup
 
 from utils import extract_xml_from_zip
@@ -27,7 +26,7 @@ class BerlinExtractor:
                 # extract textdata
                 textdaten = child.find(".//textdaten")
                 textdaten_xml = ET.tostring(textdaten, encoding="unicode")
-                soup = BeautifulSoup(textdaten_xml, "html.parser")  
+                soup = BeautifulSoup(textdaten_xml, "html.parser")
 
                 # extract paragraph number and title
                 h = soup.find("h4") or soup.find("h5")  # je nach XML-Struktur
@@ -37,9 +36,6 @@ class BerlinExtractor:
                 titel = h_text_parts[1] if len(h_text_parts) > 1 else ""
 
                 for p in soup.find_all("p"):
-                    # erster Anchor im Absatz ist meist P1-Ax
-                    a = p.find("a", attrs={"name": True})
-                    anchor = a["name"] if a else ""
 
                     # sup entfernen (Fußnotenziffern etc.)
                     for sup in p.find_all("sup"):
@@ -58,13 +54,13 @@ class BerlinExtractor:
                     absatz_text = m.group(2) if m else text
 
                     rows.append(
-                        {
-                            "Paragraph": paragraph,
-                            "Titel": titel,
-                            "Anchor": anchor,
-                            "Absatz": absatz_nr,
-                            "Text": absatz_text,
-                        }
+                        (
+                            self.BUNDESLAND.lower(),
+                            paragraph,
+                            absatz_nr,
+                            titel,
+                            absatz_text,
+                        )
                     )
 
-        return pd.DataFrame(rows)
+        return rows
