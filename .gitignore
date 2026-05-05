@@ -3,5 +3,8 @@ __pycache__
 .venv
 raw_data
 
+# database
+*.db
+
 # files
 sandbox.*

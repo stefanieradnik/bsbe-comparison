@@ -56,15 +56,15 @@ class BerlinExtractor:
                     m = re.match(r"^\((\d+)\)\s*(.*)$", text)
                     absatz_nr = int(m.group(1)) if m else ""
                     absatz_text = m.group(2) if m else text
-
+                    
                     rows.append(
-                        {
-                            "Paragraph": paragraph,
-                            "Titel": titel,
-                            "Anchor": anchor,
-                            "Absatz": absatz_nr,
-                            "Text": absatz_text,
-                        }
+                        (
+                            self.BUNDESLAND.lower(),
+                            paragraph,
+                            absatz_nr,
+                            titel, 
+                            absatz_text
+                        )
                     )
 
-        return pd.DataFrame(rows)
+        return rows
