@@ -64,3 +64,7 @@ class BerlinExtractor:
                     )
 
         return rows
+
+
+class BayernExtractor:
+    pass
