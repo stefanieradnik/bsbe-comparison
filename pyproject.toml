@@ -1,0 +1,18 @@
+[project]
+name = "jura-bsbe"
+version = "0.1.0"
+description = "Tool to compare bsbe pargraphs from German states"
+authors = [
+    {name = "stefanieradnik",email = "stefanie.radnik@web.de"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+"pyyaml==6.0.3",
+"bs4==0.0.4"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
