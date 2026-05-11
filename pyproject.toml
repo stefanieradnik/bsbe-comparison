@@ -1,7 +1,7 @@
 [project]
 name = "jura-bsbe"
 version = "0.1.0"
-description = "Tool to compare bsbe pargraphs from German states"
+description = "Tool to compare bsbe pargraphs from German ferderal states"
 authors = [
     {name = "stefanieradnik",email = "stefanie.radnik@web.de"}
 ]
