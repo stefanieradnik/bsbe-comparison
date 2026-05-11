@@ -63,10 +63,12 @@ class BerlinExtractor:
                     current_absatz_nr = 1
 
                 if current_absatz_nr is not None:
-                    absatz_text = "\n".join([p for p in current_absatz_text_parts if p]).strip()
+                    absatz_text = "\n".join(
+                        [p for p in current_absatz_text_parts if p]
+                    ).strip()
                     rows.append(
                         (
-                             f"{self.BUNDESLAND.lower()}_{paragraph}_{current_absatz_nr}",
+                            f"{self.BUNDESLAND.lower()}_{paragraph}_{current_absatz_nr}",
                             self.BUNDESLAND.lower(),
                             paragraph,
                             current_absatz_nr,
@@ -125,12 +127,13 @@ class BerlinExtractor:
 
         return rows
 
+
 class BayernExtractor:
     BUNDESLAND = "Bayern"
-    
+
     def __init__(self, path):
         self.path = path
-        
+
     def extract(self):
         para_pattern = re.compile(r"^P_\d+$")
 
@@ -138,42 +141,37 @@ class BayernExtractor:
         root = ET.fromstring(xml_bytes)
 
         rows = []
-        
+
         for el in root.findall(".//einzelnorm"):
             norm_id = el.get("einzelnormid", "")
             if para_pattern.match(norm_id):
                 para_nr = el.findtext(".//para.nr", "").strip().split(" ")[-1]
                 para_titel = el.findtext(".//para.titel", "").strip()
-            
-                
+
                 for ja in el.findall(".//jurAbsatz"):
                     abs_nr = ja.findtext("absatz.nr", "")
-                    
+
                     if abs_nr is None or not abs_nr.strip():
-                            abs_nr = "1"
+                        abs_nr = "1"
                     else:
                         abs_nr = abs_nr.strip("()")
 
-
                     abs_text_element = ja.find("absatz.text")
-                    
+
                     if abs_text_element is not None:
                         abs_text = " ".join(
-                            t.strip()
-                            for t in abs_text_element.itertext()
-                            if t.strip()
+                            t.strip() for t in abs_text_element.itertext() if t.strip()
                         )
 
-
                     rows.append(
-                        (   
+                        (
                             f"{self.BUNDESLAND.lower()}_{para_nr}_{abs_nr}",
                             self.BUNDESLAND.lower(),
                             para_nr,
                             abs_nr,
                             para_titel,
-                            abs_text
+                            abs_text,
                         )
                     )
-        
+
         return rows

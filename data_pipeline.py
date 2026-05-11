@@ -3,10 +3,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from data_extractor import (
-    BerlinExtractor,
-    BayernExtractor
-)
+from data_extractor import BayernExtractor, BerlinExtractor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -50,13 +47,11 @@ class DataPipeline:
         raw_data_path = Path(self.config["raw_data_path"])
         extractors = [
             BerlinExtractor(
-                raw_data_path
-                / self.config["bundeslaender_path"]["berlin"]
+                raw_data_path / self.config["bundeslaender_path"]["berlin"]
             ),
             BayernExtractor(
-                raw_data_path
-                / self.config["bundeslaender_path"]["bayern"]
-            )
+                raw_data_path / self.config["bundeslaender_path"]["bayern"]
+            ),
         ]
 
         for extractor in extractors:
