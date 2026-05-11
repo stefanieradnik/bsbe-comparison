@@ -3,7 +3,10 @@ import os
 import sqlite3
 from pathlib import Path
 
-from data_extractor import BerlinExtractor
+from data_extractor import (
+    BerlinExtractor,
+    BayernExtractor
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,7 +23,7 @@ class DataPipeline:
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS gesetze (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,
             bundesland TEXT NOT NULL,
             paragraph TEXT NOT NULL,
             absatz TEXT,
@@ -44,10 +47,15 @@ class DataPipeline:
 
         logger.info("Starting data extraction pipeline...")
 
+        raw_data_path = Path(self.config["raw_data_path"])
         extractors = [
             BerlinExtractor(
-                Path(self.config["raw_data_path"])
+                raw_data_path
                 / self.config["bundeslaender_path"]["berlin"]
+            ),
+            BayernExtractor(
+                raw_data_path
+                / self.config["bundeslaender_path"]["bayern"]
             )
         ]
 
@@ -60,8 +68,8 @@ class DataPipeline:
                 cursor = conn.cursor()
                 cursor.executemany(
                     """
-                    INSERT INTO gesetze (bundesland, paragraph, absatz, titel, text)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO gesetze (id, bundesland, paragraph, absatz, titel, text)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
                     data,
                 )
