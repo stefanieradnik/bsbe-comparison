@@ -23,7 +23,7 @@ jobs:
                 pip install black flake8
             
             - name: Check formatting (Check)
-              run: black --check
+              run: black --check .
 
             - name: Lint code (Flake8)
               run: flake8 .
