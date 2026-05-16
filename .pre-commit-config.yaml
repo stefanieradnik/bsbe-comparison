@@ -9,12 +9,12 @@ repos:
 
   # Formatter
   - repo: https://github.com/psf/black
-    rev: 23.10.0
+    rev: 26.5.0
     hooks:
       - id: black
 
   # Linter
   - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+    rev: 7.3.0
     hooks:
       - id: flake8
