@@ -49,7 +49,8 @@ class BerlinExtractor:
             paragraph = paragraph.split(" ")[-1] if paragraph else ""
             titel = h_text_parts[1] if len(h_text_parts) > 1 else ""
 
-            # Wir lesen NUR direkte Kinder von <textdaten>, damit <dd>/<dt> nicht als eigene Absätze zählen
+            # Wir lesen NUR direkte Kinder von <textdaten>,
+            # damit <dd>/<dt> nicht als eigene Absätze zählen
             textdaten_node = soup.find("textdaten")  # kann None sein, je nach Parser
             container = textdaten_node if textdaten_node else soup
 
