@@ -18,7 +18,8 @@ class DataPipeline:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
         CREATE TABLE IF NOT EXISTS gesetze (
             id TEXT PRIMARY KEY,
             bundesland TEXT NOT NULL,
@@ -27,7 +28,8 @@ class DataPipeline:
             titel TEXT,
             text TEXT
         )
-        """)
+        """
+        )
         conn.commit()
         conn.close()
 

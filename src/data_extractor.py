@@ -83,7 +83,6 @@ class BerlinExtractor:
 
             # Nur <p> und <dl> auf oberster Ebene verarbeiten
             for node in container.find_all(["p", "dl"], recursive=False):
-
                 if node.name == "p":
                     text = clean_tag(node)
                     if not text:
