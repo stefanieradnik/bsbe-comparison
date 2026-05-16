@@ -1,4 +1,4 @@
-This project is to make jura easier from students. 
+This project is to make jura easier from students.
 
 
 Links to BSBE from ferderal states:

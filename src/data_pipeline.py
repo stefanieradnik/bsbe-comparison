@@ -46,12 +46,8 @@ class DataPipeline:
 
         raw_data_path = Path(self.config["raw_data_path"])
         extractors = [
-            BerlinExtractor(
-                raw_data_path / self.config["bundeslaender_path"]["berlin"]
-            ),
-            BayernExtractor(
-                raw_data_path / self.config["bundeslaender_path"]["bayern"]
-            ),
+            BerlinExtractor(raw_data_path / self.config["bundeslaender_path"]["berlin"]),
+            BayernExtractor(raw_data_path / self.config["bundeslaender_path"]["bayern"]),
         ]
 
         for extractor in extractors:

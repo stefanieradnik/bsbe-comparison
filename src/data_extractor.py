@@ -49,7 +49,8 @@ class BerlinExtractor:
             paragraph = paragraph.split(" ")[-1] if paragraph else ""
             titel = h_text_parts[1] if len(h_text_parts) > 1 else ""
 
-            # Wir lesen NUR direkte Kinder von <textdaten>, damit <dd>/<dt> nicht als eigene Absätze zählen
+            # Wir lesen NUR direkte Kinder von <textdaten>,
+            # damit <dd>/<dt> nicht als eigene Absätze zählen
             textdaten_node = soup.find("textdaten")  # kann None sein, je nach Parser
             container = textdaten_node if textdaten_node else soup
 
@@ -63,9 +64,7 @@ class BerlinExtractor:
                     current_absatz_nr = 1
 
                 if current_absatz_nr is not None:
-                    absatz_text = "\n".join(
-                        [p for p in current_absatz_text_parts if p]
-                    ).strip()
+                    absatz_text = "\n".join([p for p in current_absatz_text_parts if p]).strip()
                     rows.append(
                         (
                             f"{self.BUNDESLAND.lower()}_{paragraph}_{current_absatz_nr}",
@@ -82,7 +81,6 @@ class BerlinExtractor:
 
             # Nur <p> und <dl> auf oberster Ebene verarbeiten
             for node in container.find_all(["p", "dl"], recursive=False):
-
                 if node.name == "p":
                     text = clean_tag(node)
                     if not text:
