@@ -64,9 +64,7 @@ class BerlinExtractor:
                     current_absatz_nr = 1
 
                 if current_absatz_nr is not None:
-                    absatz_text = "\n".join(
-                        [p for p in current_absatz_text_parts if p]
-                    ).strip()
+                    absatz_text = "\n".join([p for p in current_absatz_text_parts if p]).strip()
                     rows.append(
                         (
                             f"{self.BUNDESLAND.lower()}_{paragraph}_{current_absatz_nr}",
