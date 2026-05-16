@@ -175,3 +175,7 @@ class BayernExtractor:
                     )
 
         return rows
+
+
+class BayernExtractor:
+    pass
