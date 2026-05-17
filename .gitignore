@@ -4,8 +4,5 @@ __pycache__
 .vscode
 raw_data
 
-# database
-*.db
-
 # files
 sandbox.*
