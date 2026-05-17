@@ -1,4 +1,5 @@
 import yaml
+from pathlib import Path
 import streamlit as st
 from ui_utils import (
     get_unique_bundeslaender,
@@ -7,6 +8,7 @@ from ui_utils import (
     get_text_from_id,
 )
 from comparer import FuzzyComparer
+from data_pipeline import DataPipeline
 
 st.title("BSBE Bundesländer Vergleich 😊")
 
@@ -16,6 +18,13 @@ with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 db_path = config["db_path"]
+
+# set db
+pfad = Path(db_path)
+
+if not pfad.exists():
+    pipeline = DataPipeline(config)
+    pipeline.run()
 
 # st.session_state()
 bundesland_options = get_unique_bundeslaender(db_path)
