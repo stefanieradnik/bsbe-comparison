@@ -44,7 +44,7 @@ class DataPipeline:
 
         logger.info("Starting data extraction pipeline...")
 
-        raw_data_path = Path(self.config["raw_data_path"])
+        raw_data_path = Path("..") / self.config["raw_data_path"]
         extractors = [
             BerlinExtractor(raw_data_path / self.config["bundeslaender_path"]["berlin"]),
             BayernExtractor(raw_data_path / self.config["bundeslaender_path"]["bayern"]),
