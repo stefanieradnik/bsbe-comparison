@@ -1,18 +1,19 @@
-import yaml
 import streamlit as st
+import yaml
+
+from comparer import FuzzyComparer
 from ui_utils import (
+    get_text_from_id,
+    get_unique_absaetze,
     get_unique_bundeslaender,
     get_unique_paragraphs,
-    get_unique_absaetze,
-    get_text_from_id,
 )
-from comparer import FuzzyComparer
 
 st.title("BSBE Bundesländer Vergleich 😊")
 
 st.header("Referenz 📌:")
 
-with open("src/config.yaml", "r") as f:
+with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 db_path = config["db_path"]
