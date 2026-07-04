@@ -1,5 +1,6 @@
 bundeslaender_path:
   berlin: ASOG_BE_2006.zip
   bayern: BayPAG.zip
-db_path: src/gesetze.db
+  rlp: rlp.pdf
+db_path: gesetze.db
 raw_data_path: raw_data

@@ -1,6 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
 
+import pdfplumber
 from bs4 import BeautifulSoup
 
 from utils import extract_xml_from_zip
@@ -171,5 +172,159 @@ class BayernExtractor:
                             abs_text,
                         )
                     )
+
+        return rows
+
+
+class RlpExtractor:
+    BUNDESLAND = "Rheinland-Pfalz"
+
+    def __init__(self, path):
+        self.path = path
+
+    def read_pdf(self):
+        text = ""
+        with pdfplumber.open(self.path) as pdf:
+            for page in pdf.pages[10:]:
+                page_text = page.extract_text()
+
+                if page_text:
+                    page_text = re.sub(r"-\s*Seite\s*\d+\s*von\s*\d+\s*-", "", page_text)
+
+                    text += page_text + "\n"
+        return text
+
+    def clean_text(self, text):
+        # remove praeambel
+        text = text[538:]
+        # text to list
+        text_list = list(text.split("\n"))
+        return text_list
+
+    def extract(self):
+        rows = []
+
+        TITEL_ZEILEN = {
+            "16b": 2,
+            "26": 2,
+            "36": 2,
+            "54": 2,
+            "55": 2,
+            "58": 2,
+            "59": 2,
+            "67": 2,
+            "68": 2,
+            "101": 3,
+            "102": 2,
+        }
+
+        text = self.read_pdf()
+        text = self.clean_text(text)
+
+        current_para = None
+        current_absatz = None
+        current_text = []
+        para_titel = ""
+
+        seen_absatz = False
+
+        titel_aktiv = False
+        titel_zeilen_offen = 0
+
+        for elem in text:
+            elem = elem.strip()
+
+            if not elem:
+                continue
+
+            # Titel erfassen
+            if titel_aktiv:
+                if para_titel:
+                    para_titel += " " + elem
+                else:
+                    para_titel = elem
+
+                titel_zeilen_offen -= 1
+
+                if titel_zeilen_offen == 0:
+                    titel_aktiv = False
+
+                continue
+
+            # Paragraph erkennen
+            para_match = re.match(r"^§\s*(\d+[a-zA-Z]?)$", elem)
+
+            if para_match:
+
+                # Vorherigen Paragraphen speichern
+                if current_para and current_text:
+                    rows.append(
+                        (
+                            f"{self.BUNDESLAND.lower()}_{current_para}_"
+                            f"{current_absatz if current_absatz else '1'}",
+                            self.BUNDESLAND.lower(),
+                            current_para,
+                            current_absatz if current_absatz else "1",
+                            para_titel,
+                            " ".join(current_text),
+                        )
+                    )
+
+                current_para = para_match.group(1)
+                current_absatz = None
+                current_text = []
+                seen_absatz = False
+                para_titel = ""
+
+                # Anzahl der Titelzeilen festlegen
+                titel_zeilen_offen = TITEL_ZEILEN.get(current_para, 1)
+                titel_aktiv = True
+
+                continue
+
+            # Absatz erkennen
+            abs_match = re.match(r"^\((\d+)\)", elem)
+
+            if abs_match:
+
+                if current_absatz is not None and current_text:
+                    rows.append(
+                        (
+                            f"{self.BUNDESLAND.lower()}_{current_para}_{current_absatz}",
+                            self.BUNDESLAND.lower(),
+                            current_para,
+                            current_absatz,
+                            para_titel,
+                            " ".join(current_text),
+                        )
+                    )
+
+                current_absatz = abs_match.group(1)
+                seen_absatz = True
+
+                text_part = re.sub(r"^\(\d+\)\s*", "", elem)
+                current_text = [text_part]
+
+                continue
+
+            # Normaler Text
+            if not seen_absatz:
+                current_absatz = "1"
+
+            current_text.append(elem)
+
+        # Letzten Eintrag speichern
+        if current_para and current_text:
+            rows.append(
+                (
+                    f"{self.BUNDESLAND.lower()}_{current_para}_"
+                    f"{current_absatz if current_absatz else '1'}",
+                    self.BUNDESLAND.lower(),
+                    current_para,
+                    current_absatz if current_absatz else "1",
+                    para_titel,
+                    " ".join(current_text),
+                )
+            )
 
         return rows
