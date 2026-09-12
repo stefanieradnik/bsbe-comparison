@@ -1,10 +1,14 @@
+import logging
 import re
 import xml.etree.ElementTree as ET
+import zipfile
 
 import pdfplumber
 from bs4 import BeautifulSoup
 
 from utils import extract_xml_from_zip
+
+logger = logging.getLogger(__name__)
 
 
 class BerlinExtractor:
@@ -486,3 +490,160 @@ class NrwExtractor:
 
         flush_absatz()
         return rows
+
+
+class GesetzeCoExtractor:
+    """Liest ein per scrape_gesetze_co.py erzeugtes Zip mit Paragraph-Seiten
+    von gesetze.co ein. Unterklassen setzen nur BUNDESLAND."""
+
+    BUNDESLAND = None
+
+    def __init__(self, path):
+        self.path = path
+
+    def _parse_page(self, html):
+        soup = BeautifulSoup(html, "html.parser")
+
+        para_h1 = None
+        for h1 in soup.find_all("h1"):
+            if h1.find("span") and re.match(r"^§", h1.get_text(strip=True)):
+                para_h1 = h1
+                break
+
+        if para_h1 is None:
+            return None
+
+        para_match = re.match(r"^§\s*(\S+)", para_h1.get_text(strip=True))
+        if not para_match:
+            return None
+        paragraph = para_match.group(1)
+
+        title_h1 = para_h1.find_next_sibling("h1")
+        titel = title_h1.get_text(strip=True) if title_h1 else ""
+
+        absaetze = []
+        sections = soup.find_all("section", attrs={"data-abschnitt-type": "Absatz"})
+
+        if sections:
+            used_numbers = set()
+            seen_pairs = set()
+            for sec in sections:
+                nr_span = sec.find("span", attrs={"data-abschnitt-nr": ""})
+                absatz_nr = nr_span.get_text(strip=True).strip("()") if nr_span else "1"
+                if nr_span:
+                    nr_span.decompose()
+                for satz_nr in sec.find_all("span", class_="gco-sNr"):
+                    satz_nr.decompose()
+                text = re.sub(r"\s+", " ", sec.get_text(" ", strip=True)).strip()
+                if not text:
+                    continue
+
+                if (absatz_nr, text) in seen_pairs:
+                    # identischer Block kommt manchmal doppelt im DOM vor
+                    # (z.B. aufgehobene Paragraphen)
+                    continue
+
+                if absatz_nr in used_numbers:
+                    # Nummerierung faengt innerhalb derselben Seite erneut bei
+                    # (1) an (z.B. angehaengte Uebergangsvorschrift) -> fortlaufend
+                    # weiternummerieren statt doppelten Primary Key zu erzeugen
+                    numeric_used = [int(x) for x in used_numbers if x.isdigit()]
+                    absatz_nr = str(max(numeric_used) + 1) if numeric_used else absatz_nr
+
+                used_numbers.add(absatz_nr)
+                seen_pairs.add((absatz_nr, text))
+                absaetze.append((absatz_nr, text))
+        else:
+            content_div = soup.find("div", attrs={"data-content-json": ""})
+            if content_div is not None:
+                text = re.sub(r"\s+", " ", content_div.get_text(" ", strip=True)).strip()
+                if text:
+                    absaetze.append(("1", text))
+
+        return paragraph, titel, absaetze
+
+    def extract(self):
+        rows = []
+        seen_ids = {}
+
+        with zipfile.ZipFile(self.path) as zf:
+            for name in zf.namelist():
+                parsed = self._parse_page(zf.read(name))
+                if parsed is None:
+                    continue
+
+                paragraph, titel, absaetze = parsed
+                for absatz_nr, text in absaetze:
+                    row_id = f"{self.BUNDESLAND.lower()}_{paragraph}_{absatz_nr}"
+
+                    if row_id in seen_ids:
+                        # Manche Paragraphen werden gemeinsam aufgehoben und unter
+                        # einer kombinierten Ueberschrift gefuehrt (z.B. "§ 27 und
+                        # 28 SOG"), wodurch mehrere URLs auf dieselbe Paragraphennummer
+                        # abbilden. Bei identischem Text ist das kein Datenverlust.
+                        if seen_ids[row_id] == text:
+                            continue
+                        logger.warning(f"Ueberspringe widerspruechliches Duplikat fuer {row_id}")
+                        continue
+
+                    seen_ids[row_id] = text
+                    rows.append(
+                        (
+                            row_id,
+                            self.BUNDESLAND.lower(),
+                            paragraph,
+                            absatz_nr,
+                            titel,
+                            text,
+                        )
+                    )
+
+        return rows
+
+
+class BadenWuerttembergExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Baden-Württemberg"
+
+
+class BrandenburgExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Brandenburg"
+
+
+class HamburgExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Hamburg"
+
+
+class HessenExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Hessen"
+
+
+class MecklenburgVorpommernExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Mecklenburg-Vorpommern"
+
+
+class NiedersachsenExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Niedersachsen"
+
+
+class SaarlandExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Saarland"
+
+
+class SachsenExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Sachsen"
+
+
+class SachsenAnhaltExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Sachsen-Anhalt"
+
+
+class SchleswigHolsteinExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Schleswig-Holstein"
+
+
+class ThueringenExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Thüringen"
+
+
+class BremenExtractor(GesetzeCoExtractor):
+    BUNDESLAND = "Bremen"

@@ -41,3 +41,33 @@ def get_text_from_id(db_path, id):
         text = cursor.fetchone()
 
     return text[0]
+
+
+def get_absatz_candidates(db_path, bundesland):
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, text FROM gesetze WHERE bundesland = ?", (bundesland,))
+        candidates = cursor.fetchall()
+
+    return candidates
+
+
+def get_full_paragraph_text(db_path, bundesland, paragraph):
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT text FROM gesetze WHERE bundesland = ? AND paragraph = ? ORDER BY absatz",
+            (bundesland, paragraph),
+        )
+        texts = [row[0] for row in cursor.fetchall()]
+
+    return "\n".join(texts)
+
+
+def get_paragraph_candidates(db_path, bundesland):
+    paragraphs = get_unique_paragraphs(db_path, bundesland)
+
+    return [
+        (paragraph, get_full_paragraph_text(db_path, bundesland, paragraph))
+        for paragraph in paragraphs
+    ]

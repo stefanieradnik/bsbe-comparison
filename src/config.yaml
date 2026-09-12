@@ -3,5 +3,17 @@ bundeslaender_path:
   bayern: BayPAG.zip
   rlp: rlp.pdf
   nrw: nrw.pdf
+  bw: bw_gesetze_co.zip
+  brandenburg: brandenburg_gesetze_co.zip
+  bremen: bremen_gesetze_co.zip
+  hamburg: hamburg_gesetze_co.zip
+  hessen: hessen_gesetze_co.zip
+  mv: mv_gesetze_co.zip
+  niedersachsen: niedersachsen_gesetze_co.zip
+  saarland: saarland_gesetze_co.zip
+  sachsen: sachsen_gesetze_co.zip
+  sachsen_anhalt: sachsen_anhalt_gesetze_co.zip
+  schleswig_holstein: schleswig_holstein_gesetze_co.zip
+  thueringen: thueringen_gesetze_co.zip
 db_path: src/gesetze.db
 raw_data_path: raw_data

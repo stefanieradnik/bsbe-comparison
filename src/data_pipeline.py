@@ -3,7 +3,24 @@ import os
 import sqlite3
 from pathlib import Path
 
-from data_extractor import BayernExtractor, BerlinExtractor, NrwExtractor, RlpExtractor
+from data_extractor import (
+    BadenWuerttembergExtractor,
+    BayernExtractor,
+    BerlinExtractor,
+    BrandenburgExtractor,
+    BremenExtractor,
+    HamburgExtractor,
+    HessenExtractor,
+    MecklenburgVorpommernExtractor,
+    NiedersachsenExtractor,
+    NrwExtractor,
+    RlpExtractor,
+    SaarlandExtractor,
+    SachsenAnhaltExtractor,
+    SachsenExtractor,
+    SchleswigHolsteinExtractor,
+    ThueringenExtractor,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -50,6 +67,24 @@ class DataPipeline:
             BayernExtractor(raw_data_path / self.config["bundeslaender_path"]["bayern"]),
             RlpExtractor(raw_data_path / self.config["bundeslaender_path"]["rlp"]),
             NrwExtractor(raw_data_path / self.config["bundeslaender_path"]["nrw"]),
+            BadenWuerttembergExtractor(raw_data_path / self.config["bundeslaender_path"]["bw"]),
+            BrandenburgExtractor(raw_data_path / self.config["bundeslaender_path"]["brandenburg"]),
+            BremenExtractor(raw_data_path / self.config["bundeslaender_path"]["bremen"]),
+            HamburgExtractor(raw_data_path / self.config["bundeslaender_path"]["hamburg"]),
+            HessenExtractor(raw_data_path / self.config["bundeslaender_path"]["hessen"]),
+            MecklenburgVorpommernExtractor(raw_data_path / self.config["bundeslaender_path"]["mv"]),
+            NiedersachsenExtractor(
+                raw_data_path / self.config["bundeslaender_path"]["niedersachsen"]
+            ),
+            SaarlandExtractor(raw_data_path / self.config["bundeslaender_path"]["saarland"]),
+            SachsenExtractor(raw_data_path / self.config["bundeslaender_path"]["sachsen"]),
+            SachsenAnhaltExtractor(
+                raw_data_path / self.config["bundeslaender_path"]["sachsen_anhalt"]
+            ),
+            SchleswigHolsteinExtractor(
+                raw_data_path / self.config["bundeslaender_path"]["schleswig_holstein"]
+            ),
+            ThueringenExtractor(raw_data_path / self.config["bundeslaender_path"]["thueringen"]),
         ]
 
         for extractor in extractors:

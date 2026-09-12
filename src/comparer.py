@@ -1,5 +1,5 @@
-import sqlite3
-
+import numpy as np
+import streamlit as st
 from thefuzz import fuzz
 
 
@@ -8,38 +8,43 @@ class FuzzyComparer:
     def __init__(self, config):
         self.config = config
 
-    def compare(self, ref_id, target_bl):
-        conn = sqlite3.connect(self.config["db_path"])
-        cursor = conn.cursor()
+    def compare(self, ref_text, candidates):
+        ratios = [fuzz.ratio(ref_text, text) for _, text in candidates]
+        best_idx = int(np.argmax(ratios))
 
-        cursor.execute(
-            """SELECT text
-                        FROM gesetze
-                        WHERE id = ? """,
-            (ref_id,),
-        )
+        return candidates[best_idx][1], candidates[best_idx][0]
 
-        ref_text = cursor.fetchone()[0]
 
-        cursor.execute("SELECT * FROM gesetze WHERE bundesland = ?", (target_bl,))
+DEFAULT_EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 
-        sim = []
-        for target_row in cursor.fetchall():
-            target_text = target_row[-1]
-            sim.append({"tagret_id": target_row[0], "ratio": fuzz.ratio(ref_text, target_text)})
 
-        best_ratio = max(sim, key=lambda x: x["ratio"])
-        best_target_id = best_ratio["tagret_id"]
+@st.cache_resource(show_spinner="Lade Embedding-Modell 🧠 ...")
+def _load_embedding_model(model_name):
+    from sentence_transformers import SentenceTransformer
 
-        cursor.execute(
-            """SELECT *
-                        FROM gesetze
-                        WHERE id = ? """,
-            (best_target_id,),
-        )
+    return SentenceTransformer(model_name)
 
-        best_text = cursor.fetchone()[-1]
 
-        cursor.close()
+@st.cache_data(show_spinner="Berechne Embeddings 🧮 ...")
+def _embed_texts(_model, model_name, texts):
+    return _model.encode(list(texts), normalize_embeddings=True)
 
-        return best_text, best_target_id
+
+class EmbeddingComparer:
+
+    def __init__(self, config, model_name=None):
+        self.config = config
+        self.model_name = model_name or config.get("embedding_model", DEFAULT_EMBEDDING_MODEL)
+
+    def compare(self, ref_text, candidates):
+        candidate_ids = [c[0] for c in candidates]
+        candidate_texts = tuple(c[1] for c in candidates)
+
+        model = _load_embedding_model(self.model_name)
+        candidate_embeddings = _embed_texts(model, self.model_name, candidate_texts)
+
+        ref_embedding = model.encode(ref_text, normalize_embeddings=True)
+        similarities = candidate_embeddings @ ref_embedding
+        best_idx = int(np.argmax(similarities))
+
+        return candidate_texts[best_idx], candidate_ids[best_idx]
