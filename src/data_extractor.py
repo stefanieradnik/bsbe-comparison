@@ -161,6 +161,8 @@ class BayernExtractor:
                         abs_text = " ".join(
                             t.strip() for t in abs_text_element.itertext() if t.strip()
                         )
+                    else:
+                        abs_text = ""
 
                     rows.append(
                         (
@@ -327,4 +329,160 @@ class RlpExtractor:
                 )
             )
 
+        return rows
+
+
+class NrwExtractor:
+    BUNDESLAND = "Nordrhein-Westfalen"
+
+    # Fließtext beginnt nach dem Inhaltsverzeichnis auf dieser Seite (0-indiziert)
+    FIRST_CONTENT_PAGE = 8
+
+    # Füllfarbe der Fußnoten-Boxen im PDF (RGB, 0-1)
+    BOX_FILL_COLOR = (0.90196, 0.96471, 0.97255)
+
+    # Größer als jede vorkommende Seitenhöhe, um (Seite, top) in einen global
+    # sortierbaren Schlüssel umzurechnen - Fußnoten-Boxen können über eine
+    # Seitengrenze hinweg reichen (Label auf Seite N, Box auf Seite N+1)
+    PAGE_KEY = 10000
+
+    def __init__(self, path):
+        self.path = path
+
+    def _global_key(self, page_index, top):
+        return page_index * self.PAGE_KEY + top
+
+    def _footnote_box_ranges(self, page, page_index):
+        """Globale (top, bottom) Schlüssel der farbig hinterlegten Fußnoten-Boxen."""
+        ranges = []
+        for curve in page.curves:
+            color = curve.get("non_stroking_color")
+            if (
+                curve.get("fill")
+                and color
+                and all(abs(a - b) < 0.01 for a, b in zip(color, self.BOX_FILL_COLOR))
+            ):
+                ranges.append(
+                    (
+                        self._global_key(page_index, curve["top"]),
+                        self._global_key(page_index, curve["bottom"]),
+                    )
+                )
+        return ranges
+
+    def _page_lines(self, page, page_index, box_ranges):
+        """Zeilen der Seite als (globaler_key, text, ist_fett), ohne Fußnoten-Boxen
+        und Kopf-/Fußzeilen."""
+        words = page.extract_words(extra_attrs=["fontname", "size"])
+
+        lines_by_top = {}
+        for word in words:
+            key = self._global_key(page_index, word["top"])
+            in_box = any(top - 1 <= key <= bottom + 1 for top, bottom in box_ranges)
+            if in_box or word["size"] < 9:
+                continue
+            lines_by_top.setdefault(round(word["top"], 1), []).append(word)
+
+        lines = []
+        for top in sorted(lines_by_top):
+            line_words = sorted(lines_by_top[top], key=lambda w: w["x0"])
+            text = " ".join(w["text"] for w in line_words).strip()
+            if text:
+                bold = any("Bold" in w["fontname"] for w in line_words)
+                lines.append((self._global_key(page_index, top), text, bold))
+        return lines
+
+    def _document_lines(self, pdf):
+        """Alle Zeilen des Normtexts als (text, ist_fett), Fußnoten-Boxen (inkl.
+        ihres teils mehrzeiligen Labels "Fußnoten zu ...") vollständig entfernt."""
+        flat_lines = []
+        flat_boxes = []
+        for page_index in range(self.FIRST_CONTENT_PAGE, len(pdf.pages)):
+            page = pdf.pages[page_index]
+            box_ranges = self._footnote_box_ranges(page, page_index)
+            flat_lines.extend(self._page_lines(page, page_index, box_ranges))
+            flat_boxes.extend(box_ranges)
+        flat_boxes.sort()
+
+        lines = []
+        skipping = False
+        skip_until = None
+        for key, text, bold in flat_lines:
+            if skipping:
+                if key < skip_until:
+                    continue
+                skipping = False
+            if text.startswith("Fußnoten"):
+                # Label kann über mehrere Zeilen und bis auf die Folgeseite
+                # umbrechen - alles bis zur zugehörigen Box überspringen
+                skipping = True
+                skip_until = next((bottom for top, bottom in flat_boxes if top > key), key)
+                continue
+            lines.append((text, bold))
+        return lines
+
+    def extract(self):
+        para_pattern = re.compile(r"^§\s*(\d+[a-zA-Z]?)$")
+        absatz_pattern = re.compile(r"^\((\d+)\)\s*(.*)$")
+
+        rows = []
+
+        current_para = None
+        current_titel = ""
+        current_absatz = None
+        current_text = []
+        collecting_titel = False
+
+        def flush_absatz():
+            nonlocal current_absatz, current_text
+            if current_para and current_text:
+                rows.append(
+                    (
+                        f"{self.BUNDESLAND.lower()}_{current_para}_{current_absatz or '1'}",
+                        self.BUNDESLAND.lower(),
+                        current_para,
+                        current_absatz or "1",
+                        current_titel,
+                        " ".join(current_text),
+                    )
+                )
+            current_absatz = None
+            current_text = []
+
+        with pdfplumber.open(self.path) as pdf:
+            for text, bold in self._document_lines(pdf):
+                if text == "Zusatz:":
+                    # Nachträge/Erläuterungen zu Grundrechtseinschränkungen am
+                    # Ende des Dokuments, kein Normtext mehr
+                    break
+
+                para_match = para_pattern.match(text)
+                if para_match:
+                    flush_absatz()
+                    current_para = para_match.group(1)
+                    current_titel = ""
+                    collecting_titel = True
+                    continue
+
+                if collecting_titel:
+                    if bold:
+                        current_titel = (current_titel + " " + text).strip()
+                        continue
+                    collecting_titel = False
+
+                if bold:
+                    # Abschnitts-/Titelüberschriften zwischen den Paragraphen
+                    continue
+
+                absatz_match = absatz_pattern.match(text)
+                if absatz_match:
+                    flush_absatz()
+                    current_absatz = absatz_match.group(1)
+                    rest = absatz_match.group(2).strip()
+                    if rest:
+                        current_text.append(rest)
+                elif current_para is not None:
+                    current_text.append(text)
+
+        flush_absatz()
         return rows
